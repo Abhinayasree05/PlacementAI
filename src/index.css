@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------
+   Design tokens — Red / Black / White premium SaaS theme
+   These map straight to Tailwind utilities: bg-primary, text-ink,
+   bg-muted, border-border, font-display, etc.
+   --------------------------------------------------------------------- */
+@theme {
+  --color-primary: #D32F2F;
+  --color-primary-dark: #B71C1C;
+  --color-primary-light: #FDEAEA;
+  --color-ink: #111111;
+  --color-surface: #FFFFFF;
+  --color-muted: #F7F7F7;
+  --color-graydark: #333333;
+  --color-graytext: #6B6B6B;
+  --color-border: #E5E7EB;
+  --color-success: #1E8E3E;
+  --color-warning: #B8860B;
+  --color-sidebar: #111111;
+  --color-sidebar-hover: #1F1F1F;
+
+  --font-display: 'Poppins', sans-serif;
+  --font-body: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
+  --shadow-card-hover: 0 4px 8px rgba(0,0,0,0.06), 0 16px 32px rgba(211,47,47,0.10);
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  background: var(--color-muted);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* Custom scrollbar — subtle, not the browser default */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D9D9D9; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #BDBDBD; }
+
+/* ---------------------------------------------------------------------
+   Animations
+   --------------------------------------------------------------------- */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes floatY {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-fade-in-up { animation: fadeInUp 0.5s ease both; }
+.animate-pop-in { animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.animate-float { animation: floatY 3.6s ease-in-out infinite; }
+
+.skeleton {
+  background: linear-gradient(90deg, #EFEFEF 25%, #F7F7F7 37%, #EFEFEF 63%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
