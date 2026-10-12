@@ -79,7 +79,7 @@ export default function SignUpPage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="group relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border bg-muted hover:border-primary"
+              className="group relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border bg-white/5 hover:border-primary"
             >
               {photoPreview ? (
                 <img src={photoPreview} alt="Profile preview" className="h-full w-full object-cover" />
@@ -116,7 +116,7 @@ export default function SignUpPage() {
           </div>
 
           {/* Live password requirement checklist */}
-          <ul className="grid grid-cols-1 gap-1.5 rounded-xl bg-muted p-3 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-1.5 rounded-xl bg-white/5 p-3 sm:grid-cols-2">
             {PASSWORD_RULES.map((rule) => {
               const passed = rule.test(password);
               return (
@@ -140,7 +140,7 @@ export default function SignUpPage() {
               <label className="mb-1.5 block text-sm font-medium text-graydark">Year</label>
               <select
                 className={clsx(
-                  "w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-ink",
+                  "w-full rounded-xl border bg-white/5 px-4 py-2.5 text-sm text-ink",
                   "focus:outline-none focus:ring-2 focus:ring-primary/20",
                   errors.year ? "border-primary" : "border-border focus:border-graydark"
                 )}
@@ -161,7 +161,7 @@ export default function SignUpPage() {
           <div>
             <label className="mb-1.5 block text-sm font-medium text-graydark">Gender (optional)</label>
             <select
-              className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-graydark"
+              className="w-full rounded-xl border border-border bg-white/5 px-4 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-graydark"
               {...register("gender")}
               defaultValue=""
             >

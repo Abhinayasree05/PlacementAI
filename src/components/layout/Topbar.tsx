@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Bell, Menu, ChevronDown, LogOut, User as UserIcon, Settings } from "lucide-react";
+import { Menu, ChevronDown, LogOut, User as UserIcon, Settings } from "lucide-react";
 import { signOut } from "firebase/auth";
 
 import { Link, useNavigate } from "react-router-dom";
 import { auth } from "../../lib/firebase";
 
 import { useAuthStore } from "../../store/authStore";
+import { NotificationBell } from "../shared/NotificationBell";
 
 export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   const profile = useAuthStore((s) => s.profile);
@@ -17,29 +18,27 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   const photoURL = profile?.photoURL || firebaseUser?.photoURL;
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border bg-white/90 px-4 backdrop-blur sm:px-6">
-      <button onClick={onMenuClick} className="text-graydark lg:hidden">
+    <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border bg-surface/80 px-4 backdrop-blur-xl sm:px-6">
+      <button onClick={onMenuClick} className="text-graytext transition-colors hover:text-ink lg:hidden">
         <Menu className="h-5.5 w-5.5" />
       </button>
 
       <div className="hidden lg:block" />
 
       <div className="flex items-center gap-4">
-        <button
-          aria-label="Notifications"
-          className="relative flex h-9 w-9 items-center justify-center rounded-full text-graytext hover:bg-muted"
-        >
-          <Bell className="h-4.5 w-4.5" />
-          <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
-        </button>
+        <NotificationBell />
 
         <div className="relative">
           <button
             onClick={() => setMenuOpen((v) => !v)}
-            className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-muted"
+            className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition-colors hover:bg-white/5"
           >
             {photoURL ? (
-              <img src={photoURL} alt={displayName} className="h-8 w-8 rounded-full object-cover" />
+              <img
+                src={photoURL}
+                alt={displayName}
+                className="h-8 w-8 rounded-full border border-white/10 object-cover"
+              />
             ) : (
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
                 {displayName.charAt(0).toUpperCase()}
@@ -52,26 +51,30 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
           {menuOpen && (
             <div
               onMouseLeave={() => setMenuOpen(false)}
-              className="absolute right-0 mt-2 w-48 rounded-xl border border-border bg-white p-1.5 shadow-lg animate-pop-in"
+              className="absolute right-0 mt-2 w-52 rounded-xl border border-border bg-surface p-1.5 shadow-card-hover animate-pop-in"
             >
               <Link
-              to="/dashboard/profile"
-              onClick={() => setMenuOpen(false)}
-              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-graydark hover:bg-muted"
-              ></Link>
+                to="/dashboard/profile"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-graydark transition-colors hover:bg-white/5 hover:text-ink"
+              >
+                <UserIcon className="h-4 w-4 text-graytext" /> Profile
+              </Link>
               <Link
-              to="/dashboard/settings"
-              onClick={() => setMenuOpen(false)}
-              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-graydark hover:bg-muted"
-              ></Link>
+                to="/dashboard/settings"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-graydark transition-colors hover:bg-white/5 hover:text-ink"
+              >
+                <Settings className="h-4 w-4 text-graytext" /> Settings
+              </Link>
+              <div className="my-1 h-px bg-border" />
               <button
-              onClick={async () => {
-              await signOut(auth);
-              setMenuOpen(false);
-              navigate("/login");
-              }}
-                
-                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-primary hover:bg-primary-light"
+                onClick={async () => {
+                  await signOut(auth);
+                  setMenuOpen(false);
+                  navigate("/login");
+                }}
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-primary transition-colors hover:bg-primary-light"
               >
                 <LogOut className="h-4 w-4" /> Logout
               </button>

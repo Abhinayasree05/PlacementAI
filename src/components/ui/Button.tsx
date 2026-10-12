@@ -29,11 +29,11 @@ export function Button({
     primary:
       "bg-primary text-white shadow-sm hover:bg-primary-dark hover:shadow-md focus-visible:ring-primary",
     secondary:
-      "bg-ink text-white hover:bg-graydark focus-visible:ring-graydark",
+      "bg-white text-ink hover:bg-white/90 focus-visible:ring-white/40",
     outline:
-      "bg-white text-ink border border-border hover:border-graydark focus-visible:ring-graydark",
+      "bg-white/5 text-ink border border-border hover:border-primary/40 hover:bg-white/10 focus-visible:ring-graydark",
     ghost:
-      "bg-transparent text-graytext hover:bg-muted focus-visible:ring-border",
+      "bg-transparent text-graytext hover:bg-white/5 focus-visible:ring-border",
   };
 
   return (

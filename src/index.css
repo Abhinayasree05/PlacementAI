@@ -7,25 +7,25 @@
    bg-muted, border-border, font-display, etc.
    --------------------------------------------------------------------- */
 @theme {
-  --color-primary: #D32F2F;
-  --color-primary-dark: #B71C1C;
-  --color-primary-light: #FDEAEA;
-  --color-ink: #111111;
-  --color-surface: #FFFFFF;
-  --color-muted: #F7F7F7;
-  --color-graydark: #333333;
-  --color-graytext: #6B6B6B;
-  --color-border: #E5E7EB;
-  --color-success: #1E8E3E;
+  --color-primary: #E50914;
+  --color-primary-dark: #B20710;
+  --color-primary-light: rgba(229, 9, 20, 0.10);
+  --color-ink: #FFFFFF;
+  --color-surface: #161616;
+  --color-muted: #0B0B0B;
+  --color-graydark: #F2F2F2;
+  --color-graytext: #B3B3B3;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-success: #16C784;
   --color-warning: #B8860B;
-  --color-sidebar: #111111;
+  --color-sidebar: #0B0B0B;
   --color-sidebar-hover: #1F1F1F;
 
   --font-display: 'Poppins', sans-serif;
   --font-body: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  --shadow-card: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
-  --shadow-card-hover: 0 4px 8px rgba(0,0,0,0.06), 0 16px 32px rgba(211,47,47,0.10);
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  --shadow-card-hover: 0 4px 8px rgba(0,0,0,0.35), 0 16px 32px rgba(229,9,20,0.16);
 }
 
 html, body, #root {
@@ -47,8 +47,8 @@ h1, h2, h3, h4, h5 {
 /* Custom scrollbar — subtle, not the browser default */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #D9D9D9; border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: #BDBDBD; }
+::-webkit-scrollbar-thumb { background: #2A2A2A; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #3A3A3A; }
 
 /* ---------------------------------------------------------------------
    Animations
@@ -78,7 +78,7 @@ h1, h2, h3, h4, h5 {
 .animate-float { animation: floatY 3.6s ease-in-out infinite; }
 
 .skeleton {
-  background: linear-gradient(90deg, #EFEFEF 25%, #F7F7F7 37%, #EFEFEF 63%);
+  background: linear-gradient(90deg, #161616 25%, #1F1F1F 37%, #161616 63%);
   background-size: 800px 100%;
   animation: shimmer 1.4s ease-in-out infinite;
 }

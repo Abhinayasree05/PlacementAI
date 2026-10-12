@@ -2,9 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 
 
-import { HelpCircle } from "lucide-react";
-
 import { useAuthListener } from "./hooks/useAuthListener";
+import { useAgentStatusListener } from "./hooks/useAgentStatusListener";
+import { useNotificationListener } from "./hooks/useNotificationListener";
 import { ErrorBoundary } from "./components/ui/ErrorBoundary";
 import { ProtectedRoute, GuestRoute } from "./routes/ProtectedRoute";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
@@ -25,11 +25,12 @@ import ResumePage from "./pages/dashboard/ResumePage";
 import AptitudePage from "./pages/dashboard/AptitudePage";
 import InterviewPage from "./pages/dashboard/InterviewPage";
 import HelpPage from "./pages/dashboard/HelpPage";
-import { PlaceholderPage } from "./pages/dashboard/PlaceholderPage";
 import NotFoundPage from "./pages/NotFoundPage";
 
 export default function App() {
   useAuthListener();
+  useAgentStatusListener();
+  useNotificationListener();
 
   return (
     <ErrorBoundary>

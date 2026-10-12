@@ -12,6 +12,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.4.0",
+    "@monaco-editor/react": "^4.7.0",
     "clsx": "^2.1.1",
     "firebase": "^12.16.0",
     "framer-motion": "^12.42.2",
@@ -26,6 +27,7 @@
     "zod": "^4.4.3",
     "zustand": "^5.0.14"
   },
+
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.2",
     "@types/node": "^24.13.2",
@@ -36,5 +38,9 @@
     "tailwindcss": "^4.3.2",
     "typescript": "~6.0.2",
     "vite": "^8.1.1"
-  }
+  },
+  "overrides": {
+  "@grpc/grpc-js": "^1.14.6",
+  "dompurify": "^3.4.16"
+}
 }

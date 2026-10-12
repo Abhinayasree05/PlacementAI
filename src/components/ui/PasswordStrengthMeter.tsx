@@ -2,7 +2,7 @@ import { scorePassword } from "../../schemas/authSchemas";
 import clsx from "clsx";
 
 const LABELS = ["Very weak", "Weak", "Fair", "Strong", "Very strong"];
-const COLORS = ["bg-border", "bg-primary", "bg-warning", "bg-graydark", "bg-success"];
+const COLORS = ["bg-border", "bg-primary", "bg-warning", "bg-orange-500", "bg-success"];
 
 export function PasswordStrengthMeter({ password }: { password: string }) {
   if (!password) return null;

@@ -14,7 +14,7 @@ export function BarChart({ data }: { data: BarDatum[] }) {
             <span className="font-medium text-graydark">{d.label}</span>
             <span className="font-mono text-graytext">{d.value}%</span>
           </div>
-          <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${d.value}%` }}

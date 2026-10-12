@@ -12,8 +12,26 @@ import {
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
+import { motion } from "framer-motion";
+import {
+  Upload,
+  FileText,
+  Award,
+  Target,
+  Brain,
+  Sparkles,
+  TrendingUp,
+  Download,
+  Eye,
+  Trash2,
+  CheckCircle,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react";
 
 import { auth, db } from "../../lib/firebase";
+import { AgentBackground } from "../../components/shared/AgentBackground";
+import { createNotification } from "../../lib/notificationService";
 
 // pdfjs needs a worker. This CDN-free setup works with Vite.
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -116,11 +134,22 @@ export default function ResumePage() {
 
     try {
       const text = await extractTextFromPdf(selected);
-      setResumeText(text);
-    } catch (err) {
-      console.error("PDF extraction failed:", err);
-      setError("Could not read text from this PDF. Try a different file.");
-    } finally {
+
+if (!text.trim()) {
+  throw new Error("No readable text found. Please upload a text-based PDF.");
+}
+
+setResumeText(text);
+   } catch (err) {
+  console.error("PDF extraction failed:", err);
+  setResumeText("");
+  setFile(null);
+  setError(
+    err instanceof Error
+      ? err.message
+      : "Could not read text from this PDF. Try a different file."
+  );
+}finally {
       setIsExtracting(false);
     }
   }
@@ -156,20 +185,29 @@ export default function ResumePage() {
       setAnalysis(result);
       await saveResumeToHistory(result);
     } catch (err) {
-      console.error("Gemini analysis failed:", err);
-      setError("Analysis failed. Please try again in a moment.");
-    } finally {
+  console.error("Gemini analysis failed:", err);
+
+  const message = err instanceof Error ? err.message : "";
+
+  if (message.includes("(429)") || message.includes("RESOURCE_EXHAUSTED")) {
+    setError(
+      "Gemini's daily free-tier quota has been exhausted. Your uploaded resume is retained. Please try again after the quota resets."
+    );
+  } else {
+    setError(message || "Analysis failed. Please try again.");
+  }
+}finally {
       setIsAnalyzing(false);
     }
   }
-
-  async function callGeminiForAnalysis(
+    async function callGeminiForAnalysis(
     text: string,
     jobDesc: string
   ): Promise<AnalysisResult> {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error("Missing VITE_GEMINI_API_KEY in .env");
+    const workerUrl = import.meta.env.VITE_GEMINI_WORKER_URL;
+
+    if (!workerUrl) {
+      throw new Error("Missing VITE_GEMINI_WORKER_URL in .env");
     }
 
     const prompt = `
@@ -201,33 +239,22 @@ ${text}
 ${jobDesc ? `JOB DESCRIPTION:\n"""\n${jobDesc}\n"""` : "No job description was provided."}
 `.trim();
 
-    const response = await fetch(
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          parts: [
-            {
-              text: prompt,
-            },
-          ],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.3,
+    const response = await fetch(workerUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    }),
-  }
-);
+      body: JSON.stringify({
+        prompt,
+        generationConfig: {
+          temperature: 0.3,
+        },
+      }),
+    });
 
     if (!response.ok) {
       const errBody = await response.text();
-      throw new Error(`Gemini API error (${response.status}): ${errBody}`);
+      throw new Error(`Gemini Worker error (${response.status}): ${errBody}`);
     }
 
     const data = await response.json();
@@ -241,14 +268,25 @@ ${jobDesc ? `JOB DESCRIPTION:\n"""\n${jobDesc}\n"""` : "No job description was p
     const cleaned = rawText.replace(/```json|```/g, "").trim();
     let parsed: AnalysisResult;
 
-try {
-  parsed = JSON.parse(cleaned);
-} catch {
-  throw new Error("Gemini returned invalid JSON.");
-}
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      throw new Error("Gemini returned invalid JSON.");
+    }
 
-return parsed;
+    return parsed;
   }
+
+
+
+
+
+
+
+
+
+
+
 
   // ---------- Save to Firestore ----------
   async function saveResumeToHistory(result: AnalysisResult) {
@@ -263,6 +301,13 @@ return parsed;
         createdAt: serverTimestamp(),
       });
       await loadHistory();
+      createNotification(
+        user.uid,
+        "resume",
+        "Resume analysis complete",
+        `Your ATS score is ${result.atsScore}%.`,
+        "/dashboard/resume"
+      );
     } catch (err) {
       console.error("Failed to save resume history:", err);
       setError("Analysis succeeded but saving to history failed.");
@@ -310,7 +355,7 @@ return parsed;
       y += lineGap * lines.length;
     };
 
-    addLine("PlacementAI — Resume Analysis Report", { bold: true, size: 16 });
+    addLine("PlacementAI â€” Resume Analysis Report", { bold: true, size: 16 });
     y += 2;
     addLine(`ATS Score: ${result.atsScore}/100`, { bold: true });
     addLine(`Job Match Score: ${result.jobMatchScore}/100`);
@@ -324,15 +369,15 @@ return parsed;
     y += 2;
 
     addLine("Strengths", { bold: true });
-    result.strengths.forEach((s) => addLine(`• ${s}`));
+    result.strengths.forEach((s) => addLine(`â€¢ ${s}`));
     y += 2;
 
     addLine("Weaknesses", { bold: true });
-    result.weaknesses.forEach((w) => addLine(`• ${w}`));
+    result.weaknesses.forEach((w) => addLine(`â€¢ ${w}`));
     y += 2;
 
     addLine("Suggestions", { bold: true });
-    result.suggestions.forEach((s) => addLine(`• ${s}`));
+    result.suggestions.forEach((s) => addLine(`â€¢ ${s}`));
     y += 2;
 
     if (result.matchedKeywords.length > 0) {
@@ -352,230 +397,335 @@ return parsed;
   const displayedResult = viewingHistoryItem?.analysis ?? analysis;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Resume Agent</h1>
+    <AgentBackground>
 
-      {error && (
-        <div className="mb-4 rounded-md bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
-          {error}
-        </div>
-      )}
-
-      {/* Upload + Job Description */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Upload Resume (PDF)
-            </label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/pdf"
-              onChange={handleFileChange}
-              className="block w-full text-sm text-gray-600 border border-gray-300 rounded-lg cursor-pointer focus:outline-none"
-            />
-            {file && (
-  <div className="mt-4 rounded-xl border border-green-200 bg-green-50 p-4">
-
-    <h3 className="text-lg font-semibold text-green-700">
-      📄 Resume Uploaded Successfully
-    </h3>
-
-    <p className="mt-3">
-      <span className="font-semibold">Resume Name:</span> {file.name}
-    </p>
-
-    <p className="mt-2">
-      <span className="font-semibold">Resume Size:</span>{" "}
-      {file.size < 1024 * 1024
-        ? `${(file.size / 1024).toFixed(2)} KB`
-        : `${(file.size / (1024 * 1024)).toFixed(2)} MB`}
-    </p>
-
-    {isExtracting && (
-      <p className="mt-2 text-blue-600">
-        Extracting resume text...
-      </p>
-    )}
-
-    <div className="mt-4 flex gap-3">
-
-      <button
-        onClick={() => {
-          const url = URL.createObjectURL(file);
-          window.open(url, "_blank");
-        }}
-        className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
-      >
-        👁 View Resume
-      </button>
-
-      <button
-        onClick={() => {
-          const url = URL.createObjectURL(file);
-
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = file.name;
-          a.click();
-        }}
-        className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-      >
-        ⬇ Download Resume
-      </button>
-
-    </div>
-
-  </div>
-)}
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Job Description (optional — enables Job Match Score)
-          </label>
-          <textarea
-            value={jobDescription}
-            onChange={(e) => setJobDescription(e.target.value)}
-            rows={4}
-            placeholder="Paste the job description here..."
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-
-        <button
-          onClick={analyzeResume}
-          disabled={!resumeText || isAnalyzing || isExtracting}
-          className="mt-4 inline-flex items-center justify-center rounded-lg bg-indigo-600 text-white px-5 py-2.5 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 transition"
+      <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-10">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="flex items-center gap-3 mb-8"
         >
-          {isAnalyzing ? "Analyzing..." : "Analyze Resume"}
-        </button>
-      </div>
-
-      {/* Results */}
-      {displayedResult && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              {viewingHistoryItem ? "Past Report" : "Analysis Result"}
-            </h2>
-            <button
-              onClick={downloadPdfReport}
-              className="inline-flex items-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Download PDF Report
-            </button>
+          <div className="w-11 h-11 rounded-xl bg-[#E50914]/10 border border-[#E50914]/30 flex items-center justify-center">
+            <FileText className="w-5 h-5 text-[#E50914]" />
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-            <ScoreCard label="ATS Score" value={displayedResult.atsScore} />
-            <ScoreCard label="Job Match Score" value={displayedResult.jobMatchScore} />
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+              Resume Agent
+            </h1>
+            <p className="text-sm text-[#A1A1AA]">AI-powered ATS analysis for your resume</p>
           </div>
+        </motion.div>
 
-          <div className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">
-              ATS Breakdown
-            </h3>
-            <div className="space-y-3">
-              <BreakdownBar label="Skills" value={displayedResult.breakdown.skills} />
-              <BreakdownBar label="Projects" value={displayedResult.breakdown.projects} />
-              <BreakdownBar label="Education" value={displayedResult.breakdown.education} />
-              <BreakdownBar label="Formatting" value={displayedResult.breakdown.formatting} />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <ListCard title="Strengths" items={displayedResult.strengths} color="green" />
-            <ListCard title="Weaknesses" items={displayedResult.weaknesses} color="red" />
-            <ListCard title="Suggestions" items={displayedResult.suggestions} color="blue" />
-          </div>
-
-          {(displayedResult.matchedKeywords.length > 0 ||
-            displayedResult.missingKeywords.length > 0) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <KeywordChips
-                title="Matched Keywords"
-                keywords={displayedResult.matchedKeywords}
-                color="green"
-              />
-              <KeywordChips
-                title="Missing Keywords"
-                keywords={displayedResult.missingKeywords}
-                color="red"
-              />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* History */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Resume History</h2>
-
-        {isLoadingHistory && <p className="text-sm text-gray-500">Loading history...</p>}
-
-        {!isLoadingHistory && history.length === 0 && (
-          <p className="text-sm text-gray-500">No past resumes analyzed yet.</p>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 rounded-xl border border-[#E50914]/40 bg-[#E50914]/10 text-white px-4 py-3 text-sm flex items-center gap-2"
+          >
+            <AlertTriangle className="w-4 h-4 text-[#E50914] shrink-0" />
+            {error}
+          </motion.div>
         )}
 
-        <ul className="divide-y divide-gray-200">
-          {history.map((item) => (
-            <li key={item.id} className="py-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-gray-900">{item.fileName}</p>
-                <p className="text-xs text-gray-500">
-                  ATS Score: {item.analysis.atsScore}/100
-                  {item.createdAt
-  ? ` • ${item.createdAt.toDate().toLocaleString()}`
-  : ""}
+        {/* Upload + Job Description */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.05 }}
+          className="rounded-[20px] border border-white/[0.08] bg-[#151515] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-6 mb-6 hover:border-[#E50914]/30 transition-colors duration-300"
+        >
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-[#A1A1AA] mb-2">
+                Upload Resume (PDF)
+              </label>
+
+              <label
+                htmlFor="resume-upload-input"
+                className="group flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#E50914]/40 bg-white/[0.02] px-6 py-8 text-center cursor-pointer transition-colors hover:border-[#E50914] hover:bg-[#E50914]/5"
+              >
+                <div className="w-10 h-10 rounded-full bg-[#E50914]/10 border border-[#E50914]/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Upload className="w-4 h-4 text-[#E50914]" />
+                </div>
+                <p className="text-sm text-white/80">
+                  <span className="font-semibold text-[#E50914]">Click to upload</span> or drag and drop
                 </p>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                <button
-                  onClick={() => viewHistoryItem(item)}
-                  className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                <p className="text-xs text-[#A1A1AA]">PDF only</p>
+              </label>
+              <input
+                id="resume-upload-input"
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+
+              {file && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.25 }}
+                  className="mt-4 rounded-xl border border-[#E50914]/30 bg-[#E50914]/5 p-4"
                 >
-                  View Report
-                </button>
-                <button
-                  onClick={() => deleteHistoryItem(item.id)}
-                  className="text-sm font-medium text-red-600 hover:text-red-800"
-                >
-                  Delete
-                </button>
+                  <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
+                    <CheckCircle className="w-4 h-4 text-[#E50914]" />
+                    Resume Uploaded Successfully
+                  </h3>
+
+                  <p className="mt-3 text-sm text-white/80">
+                    <span className="font-semibold text-[#A1A1AA]">Resume Name:</span> {file.name}
+                  </p>
+
+                  <p className="mt-1 text-sm text-white/80">
+                    <span className="font-semibold text-[#A1A1AA]">Resume Size:</span>{" "}
+                    {file.size < 1024 * 1024
+                      ? `${(file.size / 1024).toFixed(2)} KB`
+                      : `${(file.size / (1024 * 1024)).toFixed(2)} MB`}
+                  </p>
+
+                  {isExtracting && (
+  <p className="mt-2 flex items-center gap-2 text-sm text-[#E50914]">
+    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+    Extracting resume text...
+  </p>
+)}
+
+{resumeText && !isExtracting && (
+  <p className="mt-2 flex items-center gap-2 text-sm text-green-400">
+    <CheckCircle className="w-4 h-4" />
+    Resume text extracted successfully ({resumeText.length.toLocaleString()} characters).
+  </p>
+)}
+
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button
+                      onClick={() => {
+                        const url = URL.createObjectURL(file);
+                        window.open(url, "_blank");
+                      }}
+                      className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-transparent px-4 py-2 text-sm font-semibold text-white hover:border-[#E50914] hover:bg-[#E50914]/10 transition"
+                    >
+                      <Eye className="w-4 h-4" /> View Resume
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        const url = URL.createObjectURL(file);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = file.name;
+                        a.click();
+                      }}
+                      className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-transparent px-4 py-2 text-sm font-semibold text-white hover:border-[#E50914] hover:bg-[#E50914]/10 transition"
+                    >
+                      <Download className="w-4 h-4" /> Download Resume
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-[#A1A1AA] mb-2">
+              Job Description (optional â€” enables Job Match Score)
+            </label>
+            <textarea
+              value={jobDescription}
+              onChange={(e) => setJobDescription(e.target.value)}
+              rows={4}
+              placeholder="Paste the job description here..."
+              className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white placeholder-[#71717a] focus:outline-none focus:ring-2 focus:ring-[#E50914]/50 focus:border-[#E50914]/60 transition"
+            />
+          </div>
+
+          <motion.button
+            whileHover={{ scale: resumeText && !isAnalyzing && !isExtracting ? 1.02 : 1 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={analyzeResume}
+            disabled={!resumeText || isAnalyzing || isExtracting}
+            className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all
+              bg-gradient-to-r from-[#E50914] to-[#B20710]
+              shadow-[0_0_18px_rgba(229,9,20,0.35)] hover:shadow-[0_0_26px_rgba(229,9,20,0.55)]
+              disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+          >
+            {isAnalyzing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" /> Analyzing...
+              </>
+            ) : (
+              <>
+                <Brain className="w-4 h-4" /> Analyze Resume
+              </>
+            )}
+          </motion.button>
+        </motion.div>
+
+        {/* Results */}
+        {displayedResult && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="rounded-[20px] border border-white/[0.08] bg-[#151515] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-6 mb-6"
+          >
+            <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#E50914]" />
+                {viewingHistoryItem ? "Past Report" : "Analysis Result"}
+              </h2>
+              <button
+                onClick={downloadPdfReport}
+                className="inline-flex items-center gap-2 rounded-xl border border-white/25 px-4 py-2 text-sm font-semibold text-white hover:border-[#E50914] hover:bg-[#E50914]/10 transition"
+              >
+                <Download className="w-4 h-4" /> Download PDF Report
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              <ScoreCard label="ATS Score" value={displayedResult.atsScore} icon={Award} />
+              <ScoreCard label="Job Match" value={displayedResult.jobMatchScore} icon={Target} />
+            </div>
+
+            <div className="mb-6">
+              <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#A1A1AA] mb-3">
+                <TrendingUp className="w-3.5 h-3.5 text-[#E50914]" /> ATS Breakdown
+              </h3>
+              <div className="space-y-4">
+                <BreakdownBar label="Skills" value={displayedResult.breakdown.skills} />
+                <BreakdownBar label="Projects" value={displayedResult.breakdown.projects} />
+                <BreakdownBar label="Education" value={displayedResult.breakdown.education} />
+                <BreakdownBar label="Formatting" value={displayedResult.breakdown.formatting} />
               </div>
-            </li>
-          ))}
-        </ul>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <ListCard title="Strengths" items={displayedResult.strengths} icon={CheckCircle} />
+              <ListCard title="Weaknesses" items={displayedResult.weaknesses} icon={AlertTriangle} />
+              <ListCard title="AI Suggestions" items={displayedResult.suggestions} icon={Sparkles} />
+            </div>
+
+            {(displayedResult.matchedKeywords.length > 0 ||
+              displayedResult.missingKeywords.length > 0) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <KeywordChips
+                  title="Matched Keywords"
+                  keywords={displayedResult.matchedKeywords}
+                  variant="matched"
+                />
+                <KeywordChips
+                  title="Missing Keywords"
+                  keywords={displayedResult.missingKeywords}
+                  variant="missing"
+                />
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* History */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.1 }}
+          className="rounded-[20px] border border-white/[0.08] bg-[#151515] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-6"
+        >
+          <h2 className="text-lg font-bold text-white mb-4">Resume History</h2>
+
+          {isLoadingHistory && (
+            <p className="flex items-center gap-2 text-sm text-[#A1A1AA]">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading history...
+            </p>
+          )}
+
+          {!isLoadingHistory && history.length === 0 && (
+            <p className="text-sm text-[#A1A1AA]">No past resumes analyzed yet.</p>
+          )}
+
+          <ul className="divide-y divide-white/[0.06]">
+            {history.map((item) => (
+              <li key={item.id} className="py-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-white">{item.fileName}</p>
+                  <p className="text-xs text-[#A1A1AA]">
+                    ATS Score: {item.analysis.atsScore}/100
+                    {item.createdAt ? ` â€¢ ${item.createdAt.toDate().toLocaleString()}` : ""}
+                  </p>
+                </div>
+                <div className="flex gap-4 shrink-0">
+                  <button
+                    onClick={() => viewHistoryItem(item)}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-[#E50914] transition"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> View Report
+                  </button>
+                  <button
+                    onClick={() => deleteHistoryItem(item.id)}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-[#E50914]/80 hover:text-[#E50914] transition"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </motion.div>
       </div>
-    </div>
+    </AgentBackground>
   );
 }
 
 // ---------- Small presentational helpers ----------
 
-function ScoreCard({ label, value }: { label: string; value: number }) {
+function ScoreCard({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: number;
+  icon: typeof Award;
+}) {
+  const status =
+    value >= 75 ? "Excellent" : value >= 50 ? "Good" : value >= 30 ? "Fair" : "Needs Improvement";
+
   return (
-    <div className="rounded-lg border border-gray-200 p-4 text-center">
-      <p className="text-3xl font-bold text-indigo-600">{value}</p>
-      <p className="text-sm text-gray-500 mt-1">{label}</p>
-    </div>
+    <motion.div
+      whileHover={{ y: -2 }}
+      className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 text-center hover:border-[#E50914]/40 hover:shadow-[0_0_24px_rgba(229,9,20,0.15)] transition-all"
+    >
+      <div className="flex items-center justify-center gap-1.5 mb-2">
+        <Icon className="w-3.5 h-3.5 text-[#E50914]" />
+        <p className="text-xs font-semibold uppercase tracking-wide text-[#A1A1AA]">{label}</p>
+      </div>
+      <motion.p
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+        className="text-4xl font-extrabold bg-gradient-to-r from-[#E50914] to-[#FF4D4D] bg-clip-text text-transparent"
+      >
+        {value}
+      </motion.p>
+      <p className="text-xs font-medium text-white/60 mt-1">{status}</p>
+    </motion.div>
   );
 }
 
 function BreakdownBar({ label, value }: { label: string; value: number }) {
   return (
     <div>
-      <div className="flex justify-between text-xs text-gray-600 mb-1">
-        <span>{label}</span>
+      <div className="flex justify-between text-xs text-[#A1A1AA] mb-1.5">
+        <span className="font-medium text-white/70">{label}</span>
         <span>{value}/100</span>
       </div>
-      <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-indigo-500 rounded-full"
-          style={{ width: `${value}%` }}
+      <div className="w-full h-2 rounded-full overflow-hidden bg-[#242424]">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${value}%` }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="h-full rounded-full bg-gradient-to-r from-[#E50914] to-[#FF4D4D]"
         />
       </div>
     </div>
@@ -585,50 +735,59 @@ function BreakdownBar({ label, value }: { label: string; value: number }) {
 function ListCard({
   title,
   items,
-  color,
+  icon: Icon,
 }: {
   title: string;
   items: string[];
-  color: "green" | "red" | "blue";
+  icon: typeof CheckCircle;
 }) {
-  const colorMap = {
-    green: "text-green-700 bg-green-50 border-green-200",
-    red: "text-red-700 bg-red-50 border-red-200",
-    blue: "text-blue-700 bg-blue-50 border-blue-200",
-  };
   return (
-    <div className={`rounded-lg border p-4 ${colorMap[color]}`}>
-      <h4 className="text-sm font-semibold mb-2">{title}</h4>
-      <ul className="text-sm space-y-1.5 list-disc list-inside">
+    <motion.div
+      whileHover={{ y: -2 }}
+      className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 hover:border-[#E50914]/40 hover:shadow-[0_0_20px_rgba(229,9,20,0.12)] transition-all"
+    >
+      <h4 className="flex items-center gap-2 text-sm font-semibold text-white mb-3">
+        <Icon className="w-4 h-4 text-[#E50914]" />
+        {title}
+      </h4>
+      <ul className="text-sm text-white/70 space-y-2">
         {items.map((item, i) => (
-          <li key={i}>{item}</li>
+          <li key={i} className="flex gap-2">
+            <span className="text-[#E50914] mt-1.5 w-1 h-1 rounded-full bg-[#E50914] shrink-0" />
+            {item}
+          </li>
         ))}
       </ul>
-    </div>
+    </motion.div>
   );
 }
 
 function KeywordChips({
   title,
   keywords,
-  color,
+  variant,
 }: {
   title: string;
   keywords: string[];
-  color: "green" | "red";
+  variant: "matched" | "missing";
 }) {
-  const chipColor =
-    color === "green"
-      ? "bg-green-100 text-green-800"
-      : "bg-red-100 text-red-800";
+  const Icon = variant === "matched" ? CheckCircle : AlertTriangle;
+  const chipClass =
+    variant === "matched"
+      ? "bg-white/[0.04] border border-white/15 text-white/80"
+      : "bg-[#E50914]/10 border border-[#E50914]/30 text-white/80";
+
   return (
     <div>
-      <h4 className="text-sm font-semibold text-gray-700 mb-2">{title}</h4>
+      <h4 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#A1A1AA] mb-2.5">
+        <Icon className="w-3.5 h-3.5 text-[#E50914]" />
+        {title}
+      </h4>
       <div className="flex flex-wrap gap-2">
         {keywords.map((kw, i) => (
           <span
             key={i}
-            className={`text-xs font-medium px-2.5 py-1 rounded-full ${chipColor}`}
+            className={`text-xs font-medium px-2.5 py-1 rounded-full ${chipClass}`}
           >
             {kw}
           </span>

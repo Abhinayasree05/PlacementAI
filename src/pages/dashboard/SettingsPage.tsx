@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 import {
   User,
   Target,
@@ -30,12 +30,14 @@ import {
 } from "firebase/auth";
 import { doc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
+import { createNotification } from "../../lib/notificationService";
 import { useAuthStore } from "../../store/authStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { loadUserSettings, saveUserSettings } from "../../lib/settingsService";
 import { resizeImageToDataUrl } from "../../lib/imageUtils";
 import { useProfileDraftStore } from "../../store/useProfileDraftStore";
 import CustomSelect from "../../components/ui/CustomSelect";
+import { PremiumBackground } from "../../components/shared/PremiumBackground";
 
 // =====================================================================
 // SettingsPage — Red/Black premium AI dashboard theme
@@ -43,6 +45,12 @@ import CustomSelect from "../../components/ui/CustomSelect";
 // =====================================================================
 
 type TabKey = "profile" | "placement" | "ai" | "notifications" | "security";
+
+const tabSlideVariants: Variants = {
+  enter: (dir: number) => ({ opacity: 0, x: dir * 40, scale: 0.98 }),
+  center: { opacity: 1, x: 0, scale: 1 },
+  exit: (dir: number) => ({ opacity: 0, x: dir * -40, scale: 0.98 }),
+};
 
 const TABS: { key: TabKey; label: string; icon: typeof User }[] = [
   { key: "profile", label: "Profile Settings", icon: User },
@@ -133,6 +141,13 @@ export default function SettingsPage() {
 
       store.markClean();
       useProfileDraftStore.getState().markClean();
+      createNotification(
+        uid,
+        "profile",
+        "Profile updated",
+        "Your profile and preferences were saved successfully.",
+        "/dashboard/settings"
+      );
       setSaveState("saved");
       setTimeout(() => setSaveState("idle"), 2000);
     } catch (err) {
@@ -151,11 +166,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0B0B] text-white relative overflow-hidden">
-      {/* Ambient red glow background */}
-      <div className="pointer-events-none absolute -top-40 -left-40 w-[500px] h-[500px] bg-[#E50914]/20 rounded-full blur-[140px]" />
-      <div className="pointer-events-none absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-[#E50914]/10 rounded-full blur-[140px]" />
-
+    <PremiumBackground>
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
           <div>
@@ -221,9 +232,10 @@ export default function SettingsPage() {
               <motion.div
                 key={activeTab}
                 custom={direction}
-                initial={(dir: number) => ({ opacity: 0, x: dir * 40, scale: 0.98 })}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={(dir: number) => ({ opacity: 0, x: dir * -40, scale: 0.98 })}
+                variants={tabSlideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
                 transition={{ duration: 0.22, ease: "easeInOut" }}
               >
                 {activeTab === "profile" && (
@@ -261,7 +273,7 @@ export default function SettingsPage() {
           border-color: rgba(229, 9, 20, 0.35);
         }
       `}</style>
-    </div>
+    </PremiumBackground>
   );
 }
 
@@ -352,21 +364,26 @@ function ProfileCompletionCard() {
     completion >= 90
       ? "Your profile is in great shape for placement recommendations."
       : completion >= 60
-      ? `Your profile is ${completion}% complete. Add more skills to improve placement recommendations.`
+      ? `Your profile is ${completion}% complete. Add projects and certifications to improve placement readiness.`
       : `Your profile is ${completion}% complete. Fill in your academic details and skills to unlock better AI recommendations.`;
 
   return (
-    <div className="glass-card p-6 mb-6">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="rounded-[24px] border border-white/[0.08] bg-white/[0.03] p-6 mb-6 backdrop-blur-xl shadow-[0_1px_2px_rgba(0,0,0,0.3),0_16px_40px_rgba(0,0,0,0.4)] transition-all duration-300 hover:border-[#E50914]/30 hover:shadow-[0_0_28px_rgba(229,9,20,0.25)]"
+    >
       <div className="flex items-center gap-2 mb-1">
         <Sparkle className="w-4 h-4 text-[#E50914]" />
         <h2 className="text-base font-semibold text-white">Profile Completion</h2>
       </div>
-      <p className="text-sm text-white/50 mb-4">{message}</p>
+      <p className="text-sm text-[#A1A1AA] mb-4">{message}</p>
 
       <div className="flex items-center gap-4">
-        <div className="flex-1 h-2.5 rounded-full bg-black/60 border border-white/5 overflow-hidden">
+        <div className="flex-1 h-2.5 rounded-full bg-[#171717] border border-white/[0.08] overflow-hidden">
           <motion.div
-            className="h-full rounded-full bg-gradient-to-r from-[#E50914] to-[#ff5a5a]"
+            className="h-full rounded-full bg-[#E50914] shadow-[0_0_10px_rgba(229,9,20,0.6)]"
             initial={{ width: 0 }}
             animate={{ width: `${completion}%` }}
             transition={{ duration: 0.6, ease: "easeOut" }}
@@ -374,13 +391,18 @@ function ProfileCompletionCard() {
         </div>
         <span className="text-sm font-bold text-[#E50914] w-12 text-right">{completion}%</span>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
 // =====================================================================
 // 1. Profile Settings
 // =====================================================================
+
+// Scoped to Profile section only — other Settings tabs keep using the
+// shared `inputClass` (bg-white/5) so this redesign doesn't ripple out.
+const profileInputClass =
+  "w-full rounded-lg border border-white/[0.08] bg-[#171717] px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#E50914]/50 focus:border-[#E50914] transition-all duration-200";
 
 function ProfileSection() {
   const { draft, setDraft } = useProfileDraftStore();
@@ -416,10 +438,20 @@ function ProfileSection() {
   }
 
   return (
-    <Card title="Profile Settings" description="This information is shown across your PlacementAI dashboard.">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: 0.05 }}
+      className="rounded-[24px] border border-white/[0.08] bg-white/[0.03] p-6 mb-6 backdrop-blur-xl shadow-[0_1px_2px_rgba(0,0,0,0.3),0_16px_40px_rgba(0,0,0,0.4)] transition-all duration-300 hover:border-[#E50914]/25 hover:shadow-[0_0_28px_rgba(229,9,20,0.25)]"
+    >
+      <h2 className="text-base font-semibold text-white">Profile Settings</h2>
+      <p className="text-sm text-[#A1A1AA] mt-1 mb-5">
+        This information is shown across your PlacementAI dashboard.
+      </p>
+
       <div className="flex items-center gap-5 mb-6">
-        <div className="relative">
-          <div className="w-20 h-20 rounded-full bg-white/5 overflow-hidden flex items-center justify-center border border-white/10">
+        <motion.div whileHover={{ scale: 1.04 }} transition={{ duration: 0.2 }} className="relative">
+          <div className="w-20 h-20 rounded-full bg-[#171717] overflow-hidden flex items-center justify-center border-2 border-[#E50914]/50 shadow-[0_0_16px_rgba(229,9,20,0.35)]">
             {photoBusy ? (
               <Loader2 className="w-5 h-5 text-white/40 animate-spin" />
             ) : draft.photoURL ? (
@@ -428,16 +460,16 @@ function ProfileSection() {
               <User className="w-8 h-8 text-white/30" />
             )}
           </div>
-          <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#E50914] flex items-center justify-center cursor-pointer shadow-[0_0_12px_rgba(229,9,20,0.6)]">
+          <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#E50914] flex items-center justify-center cursor-pointer shadow-[0_0_12px_rgba(229,9,20,0.6)] hover:shadow-[0_0_18px_rgba(229,9,20,0.8)] transition-shadow">
             <Camera className="w-3.5 h-3.5 text-white" />
             <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
           </label>
-        </div>
+        </motion.div>
         <div>
-          <p className="text-sm font-medium text-white/90">Profile photo</p>
-          <p className="text-xs text-white/40">JPG or PNG, up to 2MB.</p>
-          <label className="inline-block mt-1 text-xs font-semibold text-[#E50914] cursor-pointer">
-            Change photo
+          <p className="text-sm font-medium text-white">Profile photo</p>
+          <p className="text-xs text-[#A1A1AA]">JPG or PNG, up to 2MB.</p>
+          <label className="inline-flex items-center gap-1.5 mt-2 rounded-lg bg-[#E50914] px-3 py-1.5 text-xs font-semibold text-white shadow-[0_0_10px_rgba(229,9,20,0.4)] hover:bg-[#ff1a25] hover:shadow-[0_0_16px_rgba(229,9,20,0.6)] transition-all duration-200 cursor-pointer">
+            <Camera className="w-3 h-3" /> Change Photo
             <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
           </label>
         </div>
@@ -446,7 +478,7 @@ function ProfileSection() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="Full Name">
           <input
-            className={inputClass}
+            className={profileInputClass}
             value={draft.fullName}
             onChange={(e) => setDraft({ fullName: e.target.value })}
             placeholder="Your name"
@@ -454,7 +486,7 @@ function ProfileSection() {
         </Field>
         <Field label="Email">
           <input
-            className={inputClass}
+            className={profileInputClass}
             value={draft.email}
             onChange={(e) => setDraft({ email: e.target.value })}
             placeholder="you@example.com"
@@ -462,7 +494,7 @@ function ProfileSection() {
         </Field>
         <Field label="Phone Number">
           <input
-            className={inputClass}
+            className={profileInputClass}
             value={draft.phoneNumber}
             onChange={(e) => setDraft({ phoneNumber: e.target.value })}
             placeholder="+91 98765 43210"
@@ -470,7 +502,7 @@ function ProfileSection() {
         </Field>
         <Field label="College Name">
           <input
-            className={inputClass}
+            className={profileInputClass}
             value={draft.college}
             onChange={(e) => setDraft({ college: e.target.value })}
             placeholder="Your college"
@@ -478,7 +510,7 @@ function ProfileSection() {
         </Field>
         <Field label="Branch">
           <input
-            className={inputClass}
+            className={profileInputClass}
             value={draft.department}
             onChange={(e) => setDraft({ department: e.target.value })}
             placeholder="e.g. CSE, ECE, AI/ML"
@@ -486,7 +518,7 @@ function ProfileSection() {
         </Field>
         <Field label="Graduation Year">
           <input
-            className={inputClass}
+            className={profileInputClass}
             value={draft.year}
             onChange={(e) => setDraft({ year: e.target.value })}
             placeholder="2026"
@@ -498,7 +530,7 @@ function ProfileSection() {
         <Field label="Skills">
           <div className="flex gap-2 mb-3">
             <input
-              className={inputClass}
+              className={profileInputClass}
               value={skillInput}
               onChange={(e) => setSkillInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSkill())}
@@ -507,27 +539,29 @@ function ProfileSection() {
             <button
               onClick={addSkill}
               type="button"
-              className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 text-sm font-medium text-white/70 hover:border-[#E50914]/50 hover:text-white transition"
+              className="inline-flex items-center gap-1 rounded-lg border border-[#E50914]/40 bg-[#E50914]/10 px-3 text-sm font-medium text-white hover:bg-[#E50914]/20 hover:border-[#E50914]/70 transition-all duration-200"
             >
-              <Plus className="w-4 h-4" /> Add
+              <Plus className="w-4 h-4 text-[#E50914]" /> Add
             </button>
           </div>
           <div className="flex flex-wrap gap-2">
             {draft.skills.map((skill) => (
-              <span
+              <motion.span
                 key={skill}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 hover:border-[#E50914]/60 text-white/80 text-xs font-medium px-3 py-1 transition"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#171717] border border-[#E50914]/30 hover:border-[#E50914]/70 hover:shadow-[0_0_12px_rgba(229,9,20,0.25)] text-white text-xs font-medium px-3 py-1 transition-all duration-200"
               >
                 {skill}
                 <button onClick={() => removeSkill(skill)} aria-label={`Remove ${skill}`}>
                   <X className="w-3 h-3 text-[#E50914]" />
                 </button>
-              </span>
+              </motion.span>
             ))}
           </div>
         </Field>
       </div>
-    </Card>
+    </motion.div>
   );
 }
 

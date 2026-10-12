@@ -71,7 +71,7 @@ export function OtpInput({ length = 6, value, onChange, error, disabled }: OtpIn
             onPaste={handlePaste}
             aria-label={`Digit ${i + 1} of ${length}`}
             className={clsx(
-              "h-12 w-11 sm:h-14 sm:w-12 rounded-xl border text-center text-lg font-semibold text-ink",
+              "h-12 w-11 sm:h-14 sm:w-12 rounded-xl border bg-white/5 text-center text-lg font-semibold text-ink",
               "focus:outline-none focus:ring-2 focus:ring-primary/25 transition-colors",
               error ? "border-primary" : "border-border focus:border-graydark",
               disabled && "opacity-60"

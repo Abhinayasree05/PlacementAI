@@ -99,7 +99,7 @@ export default function ForgotPasswordPage() {
               We sent a password reset link to <span className="font-semibold text-graydark">{sentTo}</span>.
               Open it to choose a new password — you'll land back here to finish.
             </p>
-            <p className="mt-4 rounded-xl bg-muted px-4 py-3 text-xs text-graytext">
+            <p className="mt-4 rounded-xl bg-white/5 px-4 py-3 text-xs text-graytext">
               Firebase Authentication resets passwords via a secure emailed link rather than a
               typed code — this keeps the reset token from ever being guessable or intercepted
               client-side. That's why there's no OTP box here.

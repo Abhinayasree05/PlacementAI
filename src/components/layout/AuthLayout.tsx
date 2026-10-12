@@ -8,7 +8,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-muted lg:flex">
       {/* Left panel — brand / illustration */}
-      <div className="relative hidden w-[46%] flex-col justify-between overflow-hidden bg-ink px-10 py-10 lg:flex xl:px-14">
+      <div className="relative hidden w-[46%] flex-col justify-between overflow-hidden bg-[#0B0B0B] px-10 py-10 lg:flex xl:px-14">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-32 -left-16 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
 

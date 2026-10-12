@@ -14,7 +14,7 @@ const NAV_ITEMS = [
   { to: "/dashboard/resume", label: "Resume Agent", icon: FileText },
   { to: "/dashboard/interview", label: "Interview Agent", icon: Mic },
   { to: "/dashboard/aptitude", label: "Aptitude Agent", icon: Calculator },
-  { to: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/dashboard/analytics", label: "Recommendation Agent", icon: BarChart3 },
   { to: "/dashboard/profile", label: "Profile", icon: User },
   { to: "/dashboard/settings", label: "Settings", icon: Settings },
   { to: "/dashboard/help", label: "Help", icon: HelpCircle },
@@ -23,10 +23,10 @@ const NAV_ITEMS = [
 export function Sidebar({ onClose }: { onClose?: () => void }) {
   const navigate = useNavigate();
   return (
-    <div className="flex h-full w-64 flex-col bg-sidebar px-4 py-6">
+    <div className="flex h-full w-64 flex-col border-r border-border bg-sidebar px-4 py-6">
       <div className="mb-8 flex items-center justify-between px-2">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary shadow-[0_0_16px_rgba(229,9,20,0.45)]">
             <ShieldCheck className="h-5 w-5 text-white" strokeWidth={2.4} />
           </div>
           <span className="text-base font-bold text-white">PlacementAI</span>
@@ -47,10 +47,10 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
             onClick={onClose}
             className={({ isActive }) =>
               clsx(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-150",
+                "flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors duration-150",
                 isActive
-                  ? "bg-primary text-white"
-                  : "text-white/65 hover:bg-sidebar-hover hover:text-white"
+                  ? "border-primary/40 bg-primary/15 text-white shadow-[0_0_16px_rgba(229,9,20,0.18)]"
+                  : "border-transparent text-white/65 hover:bg-sidebar-hover hover:text-white"
               )
             }
           >

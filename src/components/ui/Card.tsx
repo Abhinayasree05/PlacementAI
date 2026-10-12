@@ -6,8 +6,8 @@ export function Card({ children, className }: { children: ReactNode; className?:
   return (
     <div
       className={clsx(
-        "rounded-3xl border border-border bg-white p-7 sm:p-8",
-        "shadow-[0_1px_2px_rgba(0,0,0,0.04),0_16px_40px_rgba(0,0,0,0.06)]",
+        "rounded-3xl border border-border bg-surface/90 backdrop-blur-xl p-7 sm:p-8",
+        "shadow-[0_1px_2px_rgba(0,0,0,0.3),0_16px_40px_rgba(0,0,0,0.4)]",
         className
       )}
     >
@@ -23,7 +23,7 @@ export function AuthTabs() {
     { to: "/signup", label: "Sign Up" },
   ];
   return (
-    <div className="mb-6 grid grid-cols-2 rounded-xl bg-muted p-1">
+    <div className="mb-6 grid grid-cols-2 rounded-xl bg-white/5 p-1">
       {tabs.map((tab) => {
         const active = pathname === tab.to;
         return (
@@ -32,7 +32,7 @@ export function AuthTabs() {
             to={tab.to}
             className={clsx(
               "rounded-lg py-2 text-center text-sm font-semibold transition-all duration-150",
-              active ? "bg-white text-primary shadow-sm" : "text-graytext hover:text-graydark"
+              active ? "bg-primary/15 text-primary border border-primary/30" : "text-graytext hover:text-graydark"
             )}
           >
             {tab.label}
